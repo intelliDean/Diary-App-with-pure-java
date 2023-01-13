@@ -3,6 +3,8 @@ package diary_models;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Diary {
     private final List<Entry> entries;
@@ -13,7 +15,21 @@ public class Diary {
     public Diary(String name, String password) {
         entries = new ArrayList<>();
         this.isLocked = true;
-        this.password = password;
+        if (isValidPassword(password)) {
+            this.password = password;
+        }
+    }
+
+    public static boolean isValidPassword(String password) {
+        // At least          0 - 9      /       a - z  /   A - Z   / Special Characters    /   20 <= >= 8
+        String regex = "^(?=.*[0-9])" + "(?=.*[a-z])(?=.*[A-Z])" + "(?=.*[@#$%^&+=])" + "(?=\\S+$).{8,20}$";
+
+        Pattern pattern = Pattern.compile(regex);
+        if (password == null) {
+            return false;
+        }
+        Matcher match = pattern.matcher(password);
+        return match.matches();
     }
 
     public boolean isLocked() {
@@ -108,7 +124,12 @@ public class Diary {
     public List<Entry> viewAll() {
         return entries;
     }
+
     public void deleteAll() {
         entries.removeAll(viewAll());
+    }
+
+    public String getPassword() {
+        return password;
     }
 }

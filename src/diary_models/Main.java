@@ -1,158 +1,247 @@
 package diary_models;
 
-import java.util.Scanner;
+import javax.swing.*;
 
 public class Main {
-    private static final Scanner input = new Scanner(System.in);
-
     public static void main(String... args) {
         Diary diary = diaryObject();
-
-        System.out.println("Diary is locked!");
+        assert diary != null;
         unlockDiary(diary);
     }
 
     private static void menu(Diary diary) {
-        System.out.println("""
-                1. Write contents
-                2. View your contents
-                3. Delete contents
-                4. Exit
-                """);
-
-        switch (Integer.parseInt(input.next())) {
+        switch (Integer.parseInt(
+                inputIn("""
+                        1. Write contents
+                        2. View your contents
+                        3. Delete contents
+                        4. Lock diary
+                        5. Exit
+                        """))) {
             case 1 -> writeIntoDiary(diary);
             case 2 -> viewContents(diary);
             case 3 -> deleteContents(diary);
-            case 4 -> System.exit(0);
+            case 4 -> {
+                diary.locked();
+                unlockDiary(diary);
+            }
+            case 5 -> exit();
         }
     }
 
     private static void deleteContents(Diary diary) {
-        System.out.println("""
-                1. Delete a content
-                2. Delete All contents
-                """);
 
-        switch (Integer.parseInt(input.next())) {
+        switch (Integer.parseInt(
+                inputIn("""
+                        1. Delete a content
+                        2. Delete All contents
+                        3. Back
+                        """))) {
             case 1 -> delete(diary);
             case 2 -> deleteAll(diary);
             case 3 -> menu(diary);
         }
-
     }
 
     private static void deleteAll(Diary diary) {
-        diary.deleteAll();
-        System.out.println("All contents deleted successfully");
-        deleteContents(diary);
+        if (diary != null) {
+            diary.deleteAll();
+            print("All contents deleted successfully");
+
+            deleteContents(diary);
+        } else {
+            print("No content found");
+            main();
+        }
     }
 
     private static void delete(Diary diary) {
-        System.out.println("Enter the ID or Topic of the content to delete");
-        diary.delete(input.nextLine());
-        deleteContents(diary);
+
+        String reply = inputIn("Enter the ID or Topic of the content to delete");
+
+        if (Integer.parseInt(reply) <= diary.size()) {
+            diary.delete(reply);
+            print("Entry deleted successfully");
+            deleteContents(diary);
+        } else {
+            print("No content found");
+        }
     }
 
     private static void viewContents(Diary diary) {
-        System.out.println("Enter either the content ID or Topic");
-        System.out.println(diary.getEntry(input.nextLine()));
 
-        System.out.println("""
-                1. View more
-                2. Back
-                """);
-        switch (Integer.parseInt(input.next())) {
-            case 1 -> viewContents(diary);
-            case 2 -> menu(diary);
+        switch (Integer.parseInt(
+                inputIn("""
+                        1. View a content
+                        2. View All contents
+                        3. View total number of entries
+                        4. Back
+                        """))) {
+            case 1 -> viewOneContent(diary);
+            case 2 -> viewAllContents(diary);
+            case 3 -> numberOfEntries(diary);
+            case 4 -> menu(diary);
+        }
+    }
+
+    private static void numberOfEntries(Diary diary) {
+        if (diary != null) {
+            print("You have "+String.valueOf(diary.size())+" entries");
+            viewContents(diary);
+        }
+    }
+
+    private static void viewAllContents(Diary diary) {
+        if (diary != null) {
+            print(diary.viewAll().toString());
+            viewContents(diary);
+        }
+    }
+
+    private static void viewOneContent(Diary diary) {
+        String reply = inputIn("Enter the content ID or Topic");
+        if (diary.getEntry(reply) != null) {
+            Entry returnedDiary = diary.getEntry(reply);
+            print(returnedDiary.toString());
+            viewContents(diary);
+        } else {
+            print("No content found");
+            viewContents(diary);
         }
     }
 
     private static Diary diaryObject() {
-        System.out.println("Welcome to my DEAR DIARY");
-        System.out.println("Enter your name to register");
-        String name = input.nextLine();
 
-        System.out.println("\nEnter password to register");
-        String password = input.nextLine();
+        String name = inputIn("""
+                Welcome to my DEAR DIARY
+                
+                Enter your name to register
+                """);
 
-        if (name == null || password == null) {
-            throw new NullPointerException("Name and Password must be entered");
-        } else {
+        String password = inputIn("""
+                       ENTER PASSWORD
+                Password must not be less than
+                8 characters and must contain,
+                numbers, lowercase and uppercase
+                letters, and special characters""");
+
+        if (Diary.isValidPassword(password) && name.length() != 0){
             Diary diary = new Diary(name, password);
-            System.out.printf("""
-                    Congratulations %s!
-                    Your diary was created successfully!
-                    """, name);
+            print("Congratulations " + name + "!\nYour diary was created successfully");
             return diary;
+        } else {
+            print("Name and Password is compulsory for registration");
+            diaryObject();
         }
+
+//        if (name.length() == 0 || password.length() == 0) {
+//            print("Name and Password is compulsory for registration");
+//            diaryObject();
+//        } else {
+//            Diary diary = new Diary(name, password);
+//            print("Congratulations " + name + "!\nYour diary was created successfully");
+//            return diary;
+//        }
+        return null;
     }
 
     private static void unlockDiary(Diary diary) {
-        System.out.println("\nEnter password to unlock diary");
-        diary.unlocked(input.next());
-        if (!diary.isLocked()) {
-            System.out.println("Diary opened successfully\n");
+        String reply = inputIn("""
+                Diary is locked!
+                Enter password to unlock diary
+                
+                Password must not be less than
+                8 characters and must contain,
+                numbers, lowercase and uppercase
+                letters, and special characters
+                """);
+        if (reply.equals(diary.getPassword())) {
+            diary.unlocked(reply);
+
+            print("Diary opened successfully");
+
             menu(diary);
         } else {
-            System.out.println("input correct password\n");
-            unlockDiary(diary);
+            print("incorrect password\n\nEnter correct password");
+            switch (Integer.parseInt(inputIn("""
+                    1. Enter correct password
+                    2. Exit App
+                    """))){
+                case 1 -> unlockDiary(diary);
+                case 2 -> exit();
+            }
+
+
         }
+    }
+
+    private static void exit() {
+        print("Thank You for using our App!");
+        System.exit(0);
     }
 
     private static void writeIntoDiary(Diary diary) {
         DTO dto = new DTO();
-        input.nextLine();
-        System.out.println("Enter topic of your entry");
-        dto.setTopic(input.nextLine());
+        dto.setTopic(inputIn("Enter topic of your entry"));
+        dto.setBody(inputIn("Enter body of your entry"));
 
-        System.out.println("Enter body of your entry");
-        dto.setBody(input.nextLine());
+        if (dto.getTopic().length() != 0) {
+            diary.write(dto.getTopic(), dto.getBody());
+            print("Entry entered successfully");
 
-        diary.write(dto.getTopic(), dto.getBody());
-        System.out.println("Entry entered successfully\n");
-
-        System.out.println("""
-                1. Update content topic
-                2. Update content body
-                3. Back
-                """);
-        switch (Integer.parseInt(input.next())) {
-            case 1 -> updateTopic(diary);
-            case 2 -> updateBody(diary);
-            case 3 -> menu(diary);
+            switch (Integer.parseInt(
+                    inputIn("""
+                            1. Write another content
+                            2. View contents
+                            3. Update content topic
+                            4. Update content body
+                            5. Back
+                            """))) {
+                case 1 -> writeIntoDiary(diary);
+                case 2 -> viewContents(diary);
+                case 3 -> updateTopic(diary);
+                case 4 -> updateBody(diary);
+                case 5 -> menu(diary);
+            }
+        } else {
+            print("Topic cannot be empty");
+            writeIntoDiary(diary);
         }
     }
 
     private static void updateBody(Diary diary) {
-        System.out.println("Enter your content topic");
-        input.nextLine();
-        String topic = input.nextLine();
+        String topic = inputIn("Enter content topic");
+        String body = inputIn("Enter new content");
 
-        System.out.println("Enter new content");
-        String body = input.nextLine();
-        if (topic == null || body == null) {
-            throw new NullPointerException("Topic or contents cannot be empty");
+        if (topic.length() == 0) {
+            print("Topic is compulsory for content update");
+            updateBody(diary);
         }
         diary.updateEntry(topic, body);
-        System.out.println("Contents updated successfully");
+        print("Contents updated successfully");
 
         writeIntoDiary(diary);
     }
 
     private static void updateTopic(Diary diary) {
-        System.out.println("Enter your old topic");
-        input.nextLine();
-        String oldTopic = input.nextLine();
+        String oldTopic = inputIn("Enter your old topic");
+        String newTopic = inputIn("Enter new Topic");
 
-        System.out.println("Enter new Topic");
-        String newTopic = input.nextLine();
-        if (oldTopic == null || newTopic == null) {
-            throw new NullPointerException("Old Topic or New Topic cannot be empty");
+        if (oldTopic.length() == 0 || newTopic.length() == 0) {
+            print("Topics are very compulsory for update");
+        } else {
+            diary.updateTopic(oldTopic, newTopic);
+            print("Topic updated successfully");
+
+            writeIntoDiary(diary);
         }
-        diary.updateTopic(oldTopic, newTopic);
-        System.out.println("Topic updated successfully");
+    }
 
-        writeIntoDiary(diary);
+    private static void print(String prompt) {
+        JOptionPane.showMessageDialog(null, prompt);
+    }
+
+    private static String inputIn(String prompt) {
+        return JOptionPane.showInputDialog(null, prompt);
     }
 }
